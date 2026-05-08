@@ -1,0 +1,63 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+npm-error.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE and Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+*.sublime-project
+*.sublime-workspace
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+
+# Build and dist
+/dist/
+/build/
+/.next/
+/out/
+
+# Temporary files
+*.tmp
+*.log
+.cache/
+
+# Database files
+*.sqlite
+*.sqlite3
+*.db
+
+# Testing
+coverage/
+.nyc_output/
+
+# Production
+/dist
+/prod
+
+# Optional npm cache directory
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+# Yarn lock files (optional, depending on your preference)
+# yarn.lock
