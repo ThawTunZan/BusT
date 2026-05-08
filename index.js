@@ -1,7 +1,9 @@
 const express = require("express");
 const puppeteer = require("puppeteer");
+require("dotenv").config();
 
 const app = express();
+
 const PORT = process.env.PORT || 3000;
 const LTA_API_URL =
     process.env.LTA_API_URL ||
@@ -42,13 +44,36 @@ async function buildDashboardHtml() {
         let busTimingText = "No Data";
         if (data.Services && data.Services.length > 0) {
             const estimatedArrival = data.Services[0].NextBus.EstimatedArrival;
-
+            const estimatedArrival2 =
+                data.Services[0].NextBus2.EstimatedArrival;
+            const estimatedArrival3 = data.Services[0].NextBus3.EstimatedArrival
+                ? data.Services[0].NextBus3.EstimatedArrival
+                : -1;
             // Convert the LTA timestamp into "Minutes away"
             const arrivalTime = new Date(estimatedArrival);
             const diffMs = arrivalTime - new Date(); // Difference in milliseconds
             const diffMins = Math.round(diffMs / 60000); // Convert to minutes
 
+            const arrivalTime2 = new Date(estimatedArrival2);
+            const diffMs2 = arrivalTime2 - new Date();
+            const diffMins2 = Math.round(diffMs2 / 60000);
+
+            if (estimatedArrival3 !== -1) {
+                const arrivalTime3 = new Date(estimatedArrival3);
+                const diffMs3 = arrivalTime3 - new Date();
+                const diffMins3 = Math.round(diffMs3 / 60000);
+            } else {
+                diffMins3 = -1;
+            }
+
             busTimingText = diffMins > 0 ? `${diffMins}m` : "Arr";
+            busTimingText2 = diffMins2 > 0 ? `${diffMins2}m` : "Arr";
+            busTimingText3 =
+                diffMins3 > 0
+                    ? `${diffMins3}m`
+                    : diffMins3 == 0
+                      ? "Arr"
+                      : "No Info";
         }
 
         // 4. Inject the variable directly into the HTML string
@@ -58,20 +83,54 @@ async function buildDashboardHtml() {
         <html>
         <head>
           <style>
-            body { background-color: black; color: orange; font-family: 'Courier New', monospace; width: 320px; height: 170px; margin: 0; padding: 10px; overflow: hidden; }
-            .bus-row { display: flex; justify-content: space-between; font-size: 28px; margin-bottom: 10px; font-weight: bold;}
-            .time { color: #00ff00; }
+            /* 1. Lock the entire page to the exact ESP32 screen size */
+            html, body { 
+              width: 340px; 
+              height: 170px; 
+              margin: 0; 
+              padding: 0; 
+              background-color: black; 
+            }
+            
+            /* 2. Create a safe zone that is 90% of the screen width */
+            .container {
+              width: 90%; 
+              margin: 0 auto; /* Centers it, leaving 5% blank space on the left and right */
+              padding-top: 15px;
+            }
+
+            .bus-row { 
+              display: flex; 
+              justify-content: space-between; 
+              font-family: 'Courier New', monospace; 
+              font-size: 10px; 
+              font-weight: bold;
+              color: red;
+            }
+            
+            .time { 
+              color: #00ff00; 
+            }
           </style>
         </head>
         <body>
-          <div class="bus-row">
-            <span>Bus 190</span>
-            <span class="time">${busTimingText}</span>
+          <div class="container">
+            <div class="bus-row">
+              <span>Bus ${data.Services[0].ServiceNo}</span>
+              <span class="time">${busTimingText}</span>
+            </div>
+            <div class="bus-row">
+              <span>Bus ${data.Services[0].ServiceNo}</span>
+              <span class="time">${busTimingText2}</span>
+            </div>
+            <div class="bus-row">
+              <span>Bus ${data.Services[0].ServiceNo}</span>
+              <span class="time">${busTimingText3}</span>
+            </div>
           </div>
         </body>
         </html>
         `;
-
         return html;
     } catch (error) {
         console.error("Error fetching bus data:", error);
@@ -96,7 +155,7 @@ app.get("/update", async (req, res) => {
         });
 
         const page = await browser.newPage();
-        await page.setViewport({ width: 320, height: 170 });
+        await page.setViewport({ width: 340, height: 170 });
 
         // Load the HTML string we defined above
         await page.setContent(await buildDashboardHtml(), {
@@ -107,6 +166,7 @@ app.get("/update", async (req, res) => {
         latestImageBuffer = await page.screenshot({
             type: "jpeg",
             quality: 90,
+            fullPage: true,
         });
 
         await browser.close();
@@ -129,7 +189,7 @@ app.get("/latest.jpg", (req, res) => {
     res.send(latestImageBuffer);
 });
 
-app.get("/health", (req, res) => {
+app.get("/health", async (req, res) => {
     res.send("Server is healthy!");
 });
 
